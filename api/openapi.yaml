@@ -1,0 +1,128 @@
+openapi: 3.1.0
+info:
+  title: Tarefas API
+  version: 2.0.0
+  description: |
+    API REST de tarefas. Contrato verificado automaticamente pelos testes
+    Playwright em `e2e/api` (cada resposta é validada contra os schemas abaixo).
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        '200':
+          description: API no ar
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { const: ok }
+  /tarefas:
+    get:
+      operationId: listarTarefas
+      responses:
+        '200':
+          description: Lista ordenada por id
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Tarefa' }
+    post:
+      operationId: incluirTarefa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TarefaInput' }
+      responses:
+        '201':
+          description: Criada
+          headers:
+            Location:
+              schema: { type: string, example: /tarefas/1 }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tarefa' }
+        '400': { $ref: '#/components/responses/Erro' }
+        '422': { $ref: '#/components/responses/ErroValidacao' }
+  /tarefas/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      operationId: buscarTarefa
+      responses:
+        '200':
+          description: Encontrada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tarefa' }
+        '404': { $ref: '#/components/responses/Erro' }
+    put:
+      operationId: alterarTarefa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TarefaInput' }
+      responses:
+        '200':
+          description: Alterada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tarefa' }
+        '400': { $ref: '#/components/responses/Erro' }
+        '404': { $ref: '#/components/responses/Erro' }
+        '422': { $ref: '#/components/responses/ErroValidacao' }
+    delete:
+      operationId: excluirTarefa
+      responses:
+        '204': { description: Excluída }
+        '404': { $ref: '#/components/responses/Erro' }
+components:
+  schemas:
+    TarefaInput:
+      type: object
+      additionalProperties: false
+      required: [titulo, descricao]
+      properties:
+        titulo: { type: string, minLength: 1, maxLength: 20 }
+        descricao: { type: string, minLength: 1, maxLength: 100 }
+    Tarefa:
+      type: object
+      additionalProperties: false
+      required: [id, titulo, descricao]
+      properties:
+        id: { type: integer, minimum: 1 }
+        titulo: { type: string, minLength: 1, maxLength: 20 }
+        descricao: { type: string, minLength: 1, maxLength: 100 }
+    Erro:
+      type: object
+      additionalProperties: false
+      required: [erro]
+      properties:
+        erro: { type: string }
+        detalhes:
+          type: object
+          additionalProperties: { type: string }
+  responses:
+    Erro:
+      description: Erro
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    ErroValidacao:
+      description: Falha de validação, com mensagem por campo em `detalhes`
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Erro'
+              - required: [detalhes]

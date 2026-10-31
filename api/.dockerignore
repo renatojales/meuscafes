@@ -1,0 +1,4 @@
+vendor
+var
+tests
+.phpunit.cache

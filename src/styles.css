@@ -1,1 +1,30 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  color-scheme: light dark;
+  --fundo: #fafaf9;
+  --superficie: #ffffff;
+  --borda: #d6d3d1;
+  --primaria: #7c4a2d;
+  --perigo: #b91c1c;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #1c1917;
+    --superficie: #292524;
+    --borda: #44403c;
+    --primaria: #a16207;
+    --perigo: #f87171;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: CanvasText;
+}

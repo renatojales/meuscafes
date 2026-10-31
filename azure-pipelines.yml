@@ -1,0 +1,97 @@
+# Equivalente Azure DevOps do .github/workflows/ci.yml.
+# Para usar: Pipelines > New pipeline > GitHub > este repositório > "Existing YAML file".
+trigger:
+  branches: { include: [master] }
+pr:
+  branches: { include: ['*'] }
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  npm_config_cache: $(Pipeline.Workspace)/.npm
+
+resources:
+  containers:
+    - container: mysql
+      image: mysql:8.4
+      ports: ['3306:3306']
+      env:
+        MYSQL_DATABASE: tarefas
+        MYSQL_USER: tarefas
+        MYSQL_PASSWORD: tarefas_ci
+        MYSQL_ROOT_PASSWORD: root_ci
+
+stages:
+  - stage: Qualidade
+    jobs:
+      - job: Frontend
+        displayName: Frontend — lint, unit, build
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: '22.x' }
+          - task: Cache@2
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              path: $(npm_config_cache)
+          - script: npm ci
+          - script: npm run format:check
+          - script: npm run lint
+          - script: npm run typecheck:e2e
+          - script: npx ng test --watch=false
+          - script: npm run build
+
+      - job: Api
+        displayName: API — PHPUnit
+        steps:
+          - script: sudo update-alternatives --set php /usr/bin/php8.3 && php -v
+            displayName: PHP 8.3
+          - script: composer validate --strict && composer install --no-interaction --prefer-dist && composer audit
+            workingDirectory: api
+          - script: vendor/bin/phpunit
+            workingDirectory: api
+          - task: PublishTestResults@2
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: api/var/junit.xml
+              testRunTitle: PHPUnit
+
+  - stage: Playwright
+    dependsOn: Qualidade
+    jobs:
+      - job: E2E
+        displayName: Playwright — API, contrato e E2E (MySQL)
+        services:
+          mysql: mysql
+        variables:
+          CI: 'true'
+          DB_DSN: mysql:host=127.0.0.1;port=3306;dbname=tarefas
+          DB_USER: tarefas
+          DB_PASSWORD: tarefas_ci
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: '22.x' }
+          - script: sudo update-alternatives --set php /usr/bin/php8.3 && php -v
+            displayName: PHP 8.3
+          - script: composer install --no-interaction --prefer-dist --no-dev
+            workingDirectory: api
+          - script: npm ci
+          - script: npx playwright install --with-deps chromium
+          - script: |
+              for i in $(seq 1 30); do
+                (echo > /dev/tcp/127.0.0.1/3306) 2>/dev/null && exit 0; sleep 2
+              done; echo "MySQL não subiu"; exit 1
+            displayName: Aguardar MySQL
+          - script: npx playwright test
+          - task: PublishTestResults@2
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: test-results/junit.xml
+              testRunTitle: Playwright
+          - task: PublishPipelineArtifact@1
+            condition: succeededOrFailed()
+            inputs:
+              targetPath: playwright-report
+              artifact: playwright-report

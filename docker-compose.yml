@@ -1,0 +1,35 @@
+# Sobe MySQL + API. Frontend: `npm start` (proxy /api -> :8080).
+# Credenciais abaixo são apenas para ambiente local; sobrescreva via .env.
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: tarefas
+      MYSQL_USER: tarefas
+      MYSQL_PASSWORD: ${DB_PASSWORD:-tarefas_local}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_local}
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./api/database/schema.mysql.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '--silent']
+      interval: 5s
+      retries: 20
+
+  api:
+    build: ./api
+    environment:
+      DB_DSN: mysql:host=db;dbname=tarefas
+      DB_USER: tarefas
+      DB_PASSWORD: ${DB_PASSWORD:-tarefas_local}
+      CORS_ALLOWED_ORIGIN: http://localhost:4200
+      APP_DEBUG: 'false'
+      DB_AUTO_MIGRATE: 'false' # schema aplicado pelo initdb do MySQL
+    ports:
+      - '8080:8080'
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:

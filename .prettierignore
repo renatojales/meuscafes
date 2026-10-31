@@ -1,0 +1,9 @@
+api/vendor/
+api/var/
+dist/
+coverage/
+playwright-report/
+test-results/
+package-lock.json
+api/composer.lock
+.angular/

@@ -1,0 +1,96 @@
+<section class="painel">
+  <h2>{{ editandoId() === null ? 'Nova tarefa' : 'Editar tarefa' }}</h2>
+
+  <form [formGroup]="form" (ngSubmit)="salvar()" novalidate data-testid="form-tarefa">
+    <label for="titulo">Título</label>
+    <input
+      id="titulo"
+      formControlName="titulo"
+      [attr.aria-invalid]="invalido('titulo')"
+      aria-describedby="titulo-erro"
+      autocomplete="off"
+    />
+    @if (invalido('titulo')) {
+      <p id="titulo-erro" class="erro-campo" data-testid="erro-titulo">
+        @if (errosServidor()?.titulo; as msg) {
+          {{ msg }}
+        } @else if (form.controls.titulo.hasError('maxlength')) {
+          Máximo de {{ limites.titulo }} caracteres.
+        } @else {
+          Campo obrigatório.
+        }
+      </p>
+    }
+
+    <label for="descricao">Descrição</label>
+    <textarea
+      id="descricao"
+      formControlName="descricao"
+      rows="3"
+      [attr.aria-invalid]="invalido('descricao')"
+      aria-describedby="descricao-erro"
+    ></textarea>
+    @if (invalido('descricao')) {
+      <p id="descricao-erro" class="erro-campo" data-testid="erro-descricao">
+        @if (errosServidor()?.descricao; as msg) {
+          {{ msg }}
+        } @else if (form.controls.descricao.hasError('maxlength')) {
+          Máximo de {{ limites.descricao }} caracteres.
+        } @else {
+          Campo obrigatório.
+        }
+      </p>
+    }
+
+    <div class="acoes">
+      <button type="submit" [disabled]="salvando()">
+        {{ editandoId() === null ? 'Adicionar' : 'Salvar' }}
+      </button>
+      @if (editandoId() !== null) {
+        <button type="button" class="secundario" (click)="cancelar()">Cancelar</button>
+      }
+    </div>
+  </form>
+</section>
+
+@if (erro(); as mensagem) {
+  <p class="alerta" role="alert" data-testid="alerta-erro">{{ mensagem }}</p>
+}
+
+<section class="painel">
+  <h2>Tarefas</h2>
+  @if (carregando()) {
+    <p aria-live="polite">Carregando…</p>
+  } @else {
+    <ul class="lista" data-testid="lista-tarefas">
+      @for (tarefa of tarefas(); track tarefa.id) {
+        <li data-testid="item-tarefa">
+          <div>
+            <strong data-testid="item-titulo">{{ tarefa.titulo }}</strong>
+            <p data-testid="item-descricao">{{ tarefa.descricao }}</p>
+          </div>
+          <div class="acoes">
+            <button
+              type="button"
+              class="secundario"
+              (click)="editar(tarefa)"
+              [attr.aria-label]="'Editar ' + tarefa.titulo"
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              class="perigo"
+              (click)="excluir(tarefa)"
+              [attr.aria-label]="'Excluir ' + tarefa.titulo"
+            >
+              Excluir
+            </button>
+          </div>
+        </li>
+      } @empty {
+        <li class="vazio" data-testid="lista-vazia">Nenhuma tarefa cadastrada.</li>
+      }
+    </ul>
+  }
+</section>
