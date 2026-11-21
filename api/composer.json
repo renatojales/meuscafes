@@ -9,7 +9,7 @@
     "slim/psr7": "^1.8"
   },
   "require-dev": {
-    "phpunit/phpunit": "^12.5"
+    "phpunit/phpunit": "^13.4"
   },
   "description": "API REST de tarefas (Slim 4)",
   "autoload": {
